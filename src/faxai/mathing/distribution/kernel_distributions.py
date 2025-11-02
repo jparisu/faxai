@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import numpy as np
-from scipy import integrate
+from scipy import integrate  # type: ignore[import-untyped]
 
 from faxai.mathing.distribution.Distribution import Distribution
 from faxai.mathing.kernel import Kernel
@@ -69,14 +69,17 @@ class KernelDensityDistribution(Distribution):
         # Variance = integral of (x - mean)^2 * pdf(x) dx
         mean = self.mean()
 
-        def integrand(x):
+        def integrand(x: float) -> float:
             return (x - mean) ** 2 * self.pdf(np.array([x]))[0]
 
         # NOTE: Integration bounds are set heuristically. For kernels with bounded support
         # (uniform, triangular, Epanechnikov), we could use tighter bounds.
         # For unbounded kernels (Gaussian), we use wide bounds.
         # This may not be accurate for extreme cases or very small/large bandwidths.
-        bandwidth_value = self._kernel.bandwidth().matrix()[0, 0]
+        bandwidth = self._kernel.bandwidth()
+        if bandwidth is None:
+            raise ValueError("Kernel bandwidth is not set")
+        bandwidth_value = bandwidth.matrix()[0, 0]
         lower_bound = self._center - 10 * np.sqrt(bandwidth_value)
         upper_bound = self._center + 10 * np.sqrt(bandwidth_value)
 
@@ -133,11 +136,15 @@ class KernelDensityDistribution(Distribution):
         # This is computationally expensive and may have numerical errors.
         # For better performance, consider using analytical CDF formulas for specific kernels.
 
-        bandwidth_value = self._kernel.bandwidth().matrix()[0, 0]
+        bandwidth = self._kernel.bandwidth()
+        if bandwidth is None:
+            raise ValueError("Kernel bandwidth is not set")
+        bandwidth_value = bandwidth.matrix()[0, 0]
         lower_bound = self._center - 10 * np.sqrt(bandwidth_value)
 
         for i, xi in enumerate(x):
-            def integrand(t):
+
+            def integrand(t: float) -> float:
                 return self.pdf(np.array([t]))[0]
 
             cdf_val, _ = integrate.quad(integrand, lower_bound, float(xi))
@@ -167,11 +174,14 @@ class KernelDensityDistribution(Distribution):
         if rng is None:
             rng = RandomGenerator()
 
-        samples = []
+        samples: list[float] = []
         max_pdf = self.maximum_pdf()
 
         # Determine sampling bounds
-        bandwidth_value = self._kernel.bandwidth().matrix()[0, 0]
+        bandwidth = self._kernel.bandwidth()
+        if bandwidth is None:
+            raise ValueError("Kernel bandwidth is not set")
+        bandwidth_value = bandwidth.matrix()[0, 0]
         lower = self._center - 5 * np.sqrt(bandwidth_value)
         upper = self._center + 5 * np.sqrt(bandwidth_value)
 
@@ -262,7 +272,10 @@ class KernelDensityEstimationDistribution(Distribution):
         # and the kernel bandwidth contribution. This is an approximation.
         # A more accurate estimate would be: var(samples) + var(kernel)
         sample_var = float(np.var(self._samples, ddof=ddof))
-        bandwidth_value = self._kernel.bandwidth().matrix()[0, 0]
+        bandwidth = self._kernel.bandwidth()
+        if bandwidth is None:
+            raise ValueError("Kernel bandwidth is not set")
+        bandwidth_value = bandwidth.matrix()[0, 0]
 
         # Total variance is approximately sample variance + kernel variance
         # For most kernels, the kernel variance is proportional to bandwidth
@@ -329,11 +342,15 @@ class KernelDensityEstimationDistribution(Distribution):
         # For each query point, we integrate from -inf to x.
         # This could be optimized by caching or using analytical formulas for specific kernels.
 
-        bandwidth_value = self._kernel.bandwidth().matrix()[0, 0]
+        bandwidth = self._kernel.bandwidth()
+        if bandwidth is None:
+            raise ValueError("Kernel bandwidth is not set")
+        bandwidth_value = bandwidth.matrix()[0, 0]
         lower_bound = np.min(self._samples) - 10 * np.sqrt(bandwidth_value)
 
         for i, xi in enumerate(x):
-            def integrand(t):
+
+            def integrand(t: float) -> float:
                 return self.pdf(np.array([t]))[0]
 
             cdf_val, _ = integrate.quad(integrand, lower_bound, float(xi))
@@ -371,8 +388,11 @@ class KernelDensityEstimationDistribution(Distribution):
         # 1. Choose a random sample point x_i with uniform probability
         # 2. Generate a random value from the kernel centered at x_i
 
-        result = []
-        bandwidth_value = self._kernel.bandwidth().matrix()[0, 0]
+        result: list[float] = []
+        bandwidth = self._kernel.bandwidth()
+        if bandwidth is None:
+            raise ValueError("Kernel bandwidth is not set")
+        bandwidth_value = bandwidth.matrix()[0, 0]
 
         for _ in range(n):
             # Step 1: Choose a random sample

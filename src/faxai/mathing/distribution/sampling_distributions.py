@@ -338,14 +338,14 @@ class WeightedDistribution(Distribution):
         For weighted samples, this uses the reliability weights formulation.
         """
         mean = self.mean()
-        variance = np.sum(self._weights * (self._samples - mean) ** 2)
+        variance: float = np.sum(self._weights * (self._samples - mean) ** 2)
 
         if ddof != 0:
             # Adjust for degrees of freedom
             # For weighted data: effective_n = (sum(w))^2 / sum(w^2)
-            sum_weights = np.sum(self._weights)
-            sum_weights_sq = np.sum(self._weights ** 2)
-            effective_n = sum_weights ** 2 / sum_weights_sq if sum_weights_sq > 0 else 1
+            sum_weights: float = np.sum(self._weights)
+            sum_weights_sq: float = np.sum(self._weights**2)
+            effective_n = sum_weights**2 / sum_weights_sq if sum_weights_sq > 0 else 1
 
             denominator = sum_weights * (effective_n - ddof) / effective_n
             if denominator <= 0:
@@ -375,7 +375,7 @@ class WeightedDistribution(Distribution):
         sorted_weights = self._weights[sorted_indices]
 
         cumulative_weights = np.cumsum(sorted_weights)
-        median_idx = np.searchsorted(cumulative_weights, 0.5)
+        median_idx: int = int(np.searchsorted(cumulative_weights, 0.5))
 
         if median_idx >= len(sorted_samples):
             median_idx = len(sorted_samples) - 1
@@ -449,7 +449,7 @@ class WeightedDistribution(Distribution):
         result = []
         for _ in range(n):
             r = rng.rand()
-            idx = np.searchsorted(cumulative_weights, r)
+            idx: int = int(np.searchsorted(cumulative_weights, r))
             if idx >= len(self._samples):
                 idx = len(self._samples) - 1
             result.append(self._samples[idx])
